@@ -22,7 +22,7 @@ public class Ticket
 
     public DateTime EntryTime { get; init; }
 
-    public DateTime ExitTime { get; set; }
+    public DateTime? ExitTime { get; set; }
 
     public int Level { get; init; }
 

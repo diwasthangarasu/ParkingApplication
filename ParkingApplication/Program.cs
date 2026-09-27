@@ -10,7 +10,9 @@ public class Program
     public static void Main()
     {
         Parking parking = new Parking();
-        TicketRepository ticketRepository = new TicketRepository();
+        CSVWriter writer = new CSVWriter("Ticket.csv");
+        TicketRepository ticketRepository = new TicketRepository(writer);
+        _ = ticketRepository.LoadTickets();
         Notifier notifier = new ();
         TicketAllocation ticketAllocation = new TicketAllocation(parking, ticketRepository, notifier);
         CheckoutService checkoutService = new CheckoutService(parking, ticketRepository, notifier);

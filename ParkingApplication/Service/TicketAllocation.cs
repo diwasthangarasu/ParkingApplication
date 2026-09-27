@@ -10,7 +10,7 @@ public class TicketAllocation
     private readonly Parking _parking;
     private readonly Notifier _notifier;
 
-    private readonly TicketRepository _ticketRepository = new();
+    private readonly TicketRepository _ticketRepository;
     public TicketAllocation(Parking parking, TicketRepository ticketRepository, Notifier notifier)
     {
         this._parking = parking;

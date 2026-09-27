@@ -22,7 +22,7 @@ public class DashboardController
         _notifier._notify += Notification.DisplayNotification;
         Lists(null, new(null, null, false));
 
-        Task t = RunAsync();
+        _ = RunAsync();
     }
 
     public async void Lists(object? sender, Notifier.NotificationArgs args)
@@ -42,7 +42,7 @@ public class DashboardController
     {
         while (true)
         {
-            this.Render();
+            Render();
 
             await Task.Delay(1000);
         }
