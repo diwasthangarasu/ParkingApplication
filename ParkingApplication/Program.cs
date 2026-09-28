@@ -9,6 +9,7 @@ public class Program
 {
     public static void Main()
     {
+        Console.CancelKeyPress += (sender, e) => { e.Cancel = true; };
         Parking parking = new Parking();
         CSVWriter writer = new CSVWriter("Ticket.csv");
         TicketRepository ticketRepository = new TicketRepository(writer);

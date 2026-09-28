@@ -9,10 +9,13 @@ namespace ParkingApplication.Repository;
 public class CSVWriter
 {
     private readonly string _filePath;
-
     private readonly Channel<Ticket> _channel;
 
     private const int BatchSize = 10;
+    private static readonly TimeSpan BatchTimeout =
+        TimeSpan.FromSeconds(5);
+
+    private readonly Task _processingTask;
 
     public CSVWriter(string filePath)
     {
@@ -20,7 +23,7 @@ public class CSVWriter
 
         _channel = Channel.CreateUnbounded<Ticket>();
 
-        _ = ProcessTicketsAsync();
+        _processingTask = ProcessTicketsAsync();
     }
 
     public async Task QueueTicket(Ticket ticket)
@@ -32,22 +35,55 @@ public class CSVWriter
     {
         List<Ticket> batch = new(BatchSize);
 
-        await foreach (Ticket ticket in _channel.Reader.ReadAllAsync())
+        while (await _channel.Reader.WaitToReadAsync())
         {
-            batch.Add(ticket);
-
-            if (batch.Count >= BatchSize)
+            while (_channel.Reader.TryRead(out Ticket? ticket))
             {
-                await WriteBatchAsync(batch);
+                batch.Add(ticket);
 
-                batch.Clear();
+                if (batch.Count >= BatchSize)
+                {
+                    await WriteBatchAsync(batch);
+                    batch.Clear();
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                await FlushAfterDelayAsync(batch);
             }
         }
 
-        // Write remaining tickets when channel is completed
+        // Final flush when channel is completed
         if (batch.Count > 0)
         {
             await WriteBatchAsync(batch);
+        }
+    }
+
+    private async Task FlushAfterDelayAsync(List<Ticket> batch)
+    {
+        using CancellationTokenSource timeout =
+            new(BatchTimeout);
+
+        try
+        {
+            while (batch.Count < BatchSize)
+            {
+                await Task.Delay(
+                    BatchTimeout,
+                    timeout.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout reached
+        }
+
+        if (batch.Count > 0)
+        {
+            await WriteBatchAsync(batch);
+            batch.Clear();
         }
     }
 
@@ -92,8 +128,8 @@ public class CSVWriter
         return tickets;
     }
 
-
-    private async Task WriteBatchAsync(List<Ticket> tickets)
+    private async Task WriteBatchAsync(
+        List<Ticket> tickets)
     {
         bool fileExists = File.Exists(_filePath);
 
@@ -122,9 +158,11 @@ public class CSVWriter
         }
     }
 
-    public void Complete()
+    public async Task CompleteAsync()
     {
         _channel.Writer.TryComplete();
+
+        await _processingTask;
     }
 
     private static string EscapeCsv(string value)

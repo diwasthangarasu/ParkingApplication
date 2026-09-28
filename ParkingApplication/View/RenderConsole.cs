@@ -2,7 +2,6 @@
 
 public static class RenderConsole
 {
-    private static readonly int _dashboardStartRow = 0;
 
     private static int _dashboardHeight => Console.WindowHeight / 3;
 
